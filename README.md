@@ -1,177 +1,170 @@
-# CLICKCLACK
+# /// CLICKCLACK
 
-> **Professional Real-Time BPM & Musical Key Detector for macOS Apple Silicon (ARM64)**  
-> Engineered specifically for **Ableton Live 11 & 12**, Audio Units, and Standalone.
+<div align="center">
 
----
-
-## Overview
-
-**ClickClack** is a zero-latency audio plugin designed to detect tempo (BPM) and musical key (Key & Camelot notation) in real time directly inside your DAW.
-
-Powered by MTG's industry-standard **Essentia MIR** framework combined with **JUCE 8**, ClickClack operates entirely locally with no network calls, accounts, or telemetry.
-
-```text
-┌──────────────────────────────────────────────┐
-│ CLICKCLACK                        REAL-TIME  │
-│                                              │
-│  BPM                 KEY          CAMELOT    │
-│  124.5               C MINOR      5A         │
-│  CONFIDENCE 94%      CONFIDENCE 89%          │
-│                                              │
-│  [●] SIGNAL ACTIVE         STATUS: LOCKED    │
-│                                              │
-│  [ RESET ]  [ COPY BPM ]  [ COPY KEY ]       │
-│  [            COPY ALL (124.5 | C Min | 5A) ]│
-└──────────────────────────────────────────────┘
+```
+   ___ _     ___ ___ _  ______ _      _   ___ _  __
+  / __| |   |_ _/ __| |/ / ___| |    /_\ / __| |/ /
+ | (__| |__  | | (__| ' < (__ | |__ / _ \ (__| ' < 
+  \___|____|___|\___|_|\_\___|____/_/ \_\___|_|\_\
 ```
 
----
+**Профессиональный Real-Time детектор BPM и музыкальной тональности (Key) для macOS Apple Silicon**  
+*Разработан специально для Ableton Live 11 & 12, Logic Pro и FL Studio.*
 
-## Features
+[![macOS](https://img.shields.io/badge/macOS-Apple%20Silicon%20(ARM64)-black?style=for-the-badge&logo=apple)](https://github.com/ku1on/ClickClack)
+[![Formats](https://img.shields.io/badge/Formats-VST3%20%7C%20AU%20%7C%20Standalone-white?style=for-the-badge)](https://github.com/ku1on/ClickClack/releases)
+[![DAW](https://img.shields.io/badge/DAW-Ableton%20Live%2011%20%2F%2012-000000?style=for-the-badge)](https://github.com/ku1on/ClickClack)
+[![License](https://img.shields.io/badge/License-AGPLv3-gray?style=for-the-badge)](LICENSE)
 
-- **Real-Time BPM Detection (Tenths Precision)**:
-  - Powered by Essentia `RhythmExtractor2013`.
-  - Half-time / double-time candidate normalization.
-  - Multi-frame rolling median stabilization.
-  - Dynamic tempo change detection with confidence decay.
-- **Harmonic Key Detection (Camelot System)**:
-  - Powered by Essentia `KeyExtractor` (HPCP Harmonic Pitch Class Profiles + polyphonic correlation).
-  - Full circle of 24 keys (12 Major + 12 Minor) with enharmonic resolution (`C#` / `Db`, `F#` / `Gb`).
-  - Standard Camelot notation mapping (`8B` = C Major, `5A` = C Minor, `8A` = A Minor, etc.).
-- **Real-Time Safety & DSP Architecture**:
-  - **Wait-Free Lock-Free FIFO**: Audio thread never allocates dynamic memory and never takes mutex locks.
-  - **Sliding Analysis Window**: 6-second circular rolling analysis buffer with 0.5-second hop intervals.
-  - **Native Sample Rate Conversion**: High-quality SINC resampling via `libsamplerate` to ensure 44.1 kHz input for Essentia algorithms regardless of host session sample rate (44.1k, 48k, 88.2k, 96k, 192k).
-- **Strict Monochromatic Brutalist Design**:
-  - High-contrast industrial palette (pure black `#0A0A0A`, off-white typography, surgical gray borders).
-  - Apple SF Pro typographic hierarchy and monospaced technical figures.
-  - Responsive visual states: `WAITING` (silence), `ANALYZING` (gathering frames), `LOCKED` (high confidence).
-  - One-click clipboard actions: `RESET`, `COPY BPM`, `COPY KEY`, and `COPY ALL` (format: `124.5 BPM | C Minor | 5A`).
+<br/>
+
+<img src="Assets/preview.png" alt="ClickClack UI Interface" width="760"/>
+
+</div>
 
 ---
 
-## Plugin Formats & Installation
+## ☕ Поддержать проект (Pay What You Want / Чаевые)
 
-ClickClack builds natively as **Mach-O 64-bit arm64** for macOS 12+ (Apple Silicon M1/M2/M3/M4):
+ClickClack распространяется по модели **Pay What You Want («Плати сколько хочешь»)** — вы можете скачать и пользоваться плагином **абсолютно бесплатно**, а если он экономит вам время в студии и помогает в творчестве — закинуть автору любую комфортную сумму на кофе или дальнейшую разработку версии под Windows:
 
-| Format | Target Path | Ableton Live Compatibility |
-| :--- | :--- | :--- |
-| **VST3** | `~/Library/Audio/Plug-Ins/VST3/ClickClack.vst3` | Ableton Live 11 & 12 |
-| **Audio Unit (AU)** | `~/Library/Audio/Plug-Ins/Components/ClickClack.component` | Ableton Live 11 & 12, Logic Pro |
-| **Standalone App** | `/Applications/ClickClack.app` | Standalone audio testing |
+* 💳 **Чаевые картами РФ / СБП (CloudTips / Т-Банк):** [Оставить чаевые](https://pay.tbank.ru/) *(или CloudTips)*
+* 🚀 **Boosty (Донат / Подписка):** [boosty.to/clickclack](https://boosty.to/)
+* 🌍 **Gumroad (Зарубежные карты / Apple Pay / PayPal):** [gumroad.com](https://gumroad.com/)
+* 💎 **USDT (TRC20):** `Укажите свой кошелек в настройках релиза`
+* ⚡ **TON:** `Укажите свой TON адрес`
 
-### Quick Install
+---
 
+## ⚡ О плагине
+
+**ClickClack** — минималистичный, бескомпромиссный инструмент для мгновенного определения темпа и тональности трека или сэмпла прямо во время воспроизведения в DAW. 
+
+Никаких облачных запросов, телеметрии, подписок или перегруженных меню. Вся обработка происходит **100% локально** на мощностях Apple Silicon с использованием алгоритмов мирового стандарта **Essentia MIR** и аудиодвижка **JUCE 8**.
+
+---
+
+## 🎯 Ключевые возможности
+
+### 1. Точный BPM без скачков и дребезга
+* **Окно накопления 5–8 секунд:** плагин не показывает случайные промежуточные цифры — он накапливает автокорреляционную статистику и выдает только проверенный темп.
+* **Умное квантование к музыкальной сетке:** алгоритм распознает фазовый джиттер и автоматически притягивает погрешности вида `144.6`–`144.8` к честным **`145.0 BPM`**. Поддерживаются также половинные сетки (`.5`).
+* **Интеллектуальная фиксация (`LOCKED`):** гистерезис требует устойчивого консенсуса нескольких фреймов перед фиксацией, предотвращая скачки от сбивок и дропов.
+
+### 2. Определение тональности и Camelot Wheel
+* **Гармонический профиль HPCP:** спектральный анализ хромы по 12 мажорным и 12 минорным профилям.
+* **Нотация Camelot:** мгновенный перевод в формат для гармонического сведения (`5A` = C Minor, `8B` = C Major, `8A` = A Minor и т.д.).
+* **Защита от перкуссии:** фильтрация резких транзиентов бочки и малого барабана, чтобы аккордовая информация считывалась без ложных модуляций.
+
+### 3. Real-Time безопасность
+* **Wait-Free Lock-Free FIFO:** в аудиопотоке (`processBlock`) нет блокирующих мьютексов и динамических выделений памяти. Плагин никогда не вызовет щелчков, дропаутов или зависания звука в Ableton.
+* **Апсемплинг/Даунсемплинг SINC:** встроенная поддержка любых частот дискретизации проекта (44.1k, 48k, 88.2k, 96k, 192k) с ресемплингом через `libsamplerate`.
+
+### 4. Швейцарский бруталистский интерфейс
+* Монохромная эстетика, четкая типографика Apple SF Pro, высокая контрастность и моноширинные технические цифры.
+* 12-сегментный ступенчатый индикатор входного сигнала.
+* Кнопки быстрого копирования в один клик:
+  * `COPY BPM` — копирует только темп.
+  * `COPY KEY` — копирует тональность.
+  * `COPY ALL` — копирует готовую строку метаданных: `124.5 BPM | C Minor | 5A`.
+
+---
+
+## 📦 Быстрая установка (Готовый релиз)
+
+### Вариант 1: Через архив релиза (самый быстрый)
+1. Перейдите в раздел **[Releases](https://github.com/ku1on/ClickClack/releases)**.
+2. Скачайте архив **`ClickClack-macOS-arm64-v1.0.0.zip`**.
+3. Распакуйте архив и запустите двойным кликом скрипт установки `install.sh` (или выполните команду в терминале):
+   ```bash
+   ./install.sh
+   ```
+4. Скрипт сам скопирует VST3 в `~/Library/Audio/Plug-Ins/VST3`, Audio Unit в `~/Library/Audio/Plug-Ins/Components`, приложение в `/Applications` и сбросит кэш macOS CoreAudio.
+
+### Вариант 2: Ручная установка
+* Скопируйте **`ClickClack.vst3`** в папку:
+  `~/Library/Audio/Plug-Ins/VST3/` (или `/Library/Audio/Plug-Ins/VST3/`)
+* Скопируйте **`ClickClack.component`** в папку:
+  `~/Library/Audio/Plug-Ins/Components/` (или `/Library/Audio/Plug-Ins/Components/`)
+* Снимите карантин macOS (если система ругается при первом запуске):
+  ```bash
+  xattr -cr ~/Library/Audio/Plug-Ins/VST3/ClickClack.vst3 ~/Library/Audio/Plug-Ins/Components/ClickClack.component
+  ```
+
+---
+
+## 🎛 Работа в Ableton Live 11 / 12
+
+1. Откройте **Ableton Live**.
+2. В браузере слева откройте **Plug-Ins** → **VST3** (или **Audio Units**) → **ClickClack Audio** → **ClickClack**.
+3. Перетащите плагин на аудиодорожку или на Master-канал.
+4. Нажмите Play в Ableton.
+5. Первые 5 секунд в статусе отображается `ANALYZING xx%`, затем плагин переходит в статус **`LOCKED`** и выводит чистые значения BPM и тональности.
+
+> 💡 **Совет:** Если Ableton Live был открыт во время установки плагина, перезапустите Ableton либо откройте **Settings (Preferences) → Plug-Ins**, зажмите клавишу **Option (Alt)** на клавиатуре и нажмите **Rescan** (принудительное глубокое пересканирование).
+
+---
+
+## 🛠 Сборка из исходников
+
+Для разработчиков, желающих собрать проект самостоятельно под macOS Apple Silicon (ARM64):
+
+### Системные требования:
+* macOS 12.0+ (Apple Silicon M1/M2/M3/M4)
+* Xcode Command Line Tools (`clang`, `make`)
+* CMake 3.22+
+* Зависимости Homebrew:
+  ```bash
+  brew install libsamplerate fftw libyaml taglib eigen ffmpeg
+  ```
+
+### Сборка:
 ```bash
+# 1. Клонируйте репозиторий
+git clone https://github.com/ku1on/ClickClack.git
 cd ClickClack
-./Scripts/install.sh
-```
 
----
-
-## Ableton Live Workflow
-
-1. Open **Ableton Live 11** or **Ableton Live 12**.
-2. Navigate to **Plugins** in the browser sidebar (`Plug-Ins` -> `VST3` or `Audio Units`).
-3. Drag **ClickClack** onto any audio track or the Master bus.
-4. Press Play in Ableton.
-5. ClickClack immediately tracks incoming audio:
-   - Within 0.5 – 1.0 second: status transitions from `WAITING` to `ANALYZING`.
-   - Within 3 – 5 seconds: tempo and key reach high confidence, badge locks to `LOCKED`.
-6. Click `COPY ALL` to paste directly into Ableton track titles, clip notes, or DJ metadata.
-
----
-
-## Build from Source
-
-### Prerequisites
-- macOS Apple Silicon (ARM64)
-- Xcode Command Line Tools (`clang`, `make`)
-- CMake 3.22+
-- Homebrew dependencies: `libsamplerate`, `fftw`, `libyaml`, `taglib`, `eigen`, `ffmpeg`
-
-```bash
-# 1. Clone repository
-git clone https://github.com/clickclack/clickclack.git
-cd clickclack
-
-# 2. Build plugin bundles
+# 2. Запустите сборку
 ./Scripts/build.sh
 
-# 3. Install to macOS audio directories
+# 3. Установите в систему
 ./Scripts/install.sh
 ```
 
 ---
 
-## Project Structure
+## 📂 Структура проекта
 
 ```text
 ClickClack/
-├── CMakeLists.txt                # Unified CMake build configuration
-├── LICENSE                       # AGPLv3 + Commercial licensing notice
-├── BUILD.md                      # Detailed technical build guide
-├── README.md                     # Product documentation
+├── CMakeLists.txt                # Главная конфигурация сборки CMake
+├── LICENSE                       # Лицензия GNU AGPLv3
+├── README.md                     # Документация продукта
+├── Assets/                       # Изображения интерфейса
 ├── Scripts/
-│   ├── build.sh                  # One-click build script
-│   └── install.sh                # Installation and AU cache refresh
+│   ├── build.sh                  # Автоматическая сборка Release
+│   └── install.sh                # Установка плагинов в систему
 ├── Source/
-│   ├── Analysis/                 # Worker thread and confidence state machine
-│   │   ├── AnalysisEngine.cpp / .h
-│   │   ├── AnalysisResult.h
-│   │   ├── AnalysisWorker.cpp / .h
-│   │   └── ConfidenceEstimator.cpp / .h
-│   ├── Audio/                    # Audio input downmix, meters, and circular buffer
-│   │   ├── AudioBufferManager.cpp / .h
-│   │   └── AudioInputProcessor.cpp / .h
-│   ├── DSP/                      # Essentia algorithm wrappers & Camelot wheel
-│   │   ├── BPMDetector.cpp / .h
-│   │   ├── KeyDetector.cpp / .h
-│   │   └── CamelotMapper.cpp / .h
-│   ├── UI/                       # Brutalist design system components
-│   │   ├── Components/
-│   │   │   ├── AudioSignalMeter.cpp / .h
-│   │   │   ├── BrutalistButton.cpp / .h
-│   │   │   ├── ConfidenceBar.cpp / .h
-│   │   │   └── StatusBadge.cpp / .h
-│   │   └── Theme/
-│   │       └── BrutalistTheme.h
-│   ├── Utils/
-│   │   └── LockFreeFifo.h        # SPSC atomic lock-free ring buffer
-│   ├── PluginProcessor.cpp / .h  # JUCE AudioProcessor lifecycle
-│   └── PluginEditor.cpp / .h     # JUCE AudioProcessorEditor
-├── Tests/
-│   ├── CamelotTest.cpp           # Key & Camelot unit tests
-│   └── DSPTest.cpp               # Audio FIFO & buffer manager tests
+│   ├── Analysis/                 # Фоновый воркер и расчет уверенности (Confidence)
+│   ├── Audio/                    # Lock-free буферы и сведение каналов
+│   ├── DSP/                      # Алгоритмы Essentia, BPM Detector, Key Detector
+│   ├── UI/                       # Бруталистская дизайн-система и компоненты
+│   └── PluginProcessor.cpp / .h  # JUCE Audio Engine
 └── deps/
     ├── JUCE/                     # JUCE 8 framework
-    └── essentia/                 # Essentia static library (ARM64) & headers
+    └── essentia/                 # Статическая библиотека Essentia ARM64
 ```
 
 ---
 
-## Testing
+## ⚖️ Лицензия
 
-Unit tests run independently and verify the DSP pipeline:
-
-```bash
-# Run Camelot circle and enharmonics verification
-clang++ -std=c++17 Tests/CamelotTest.cpp Source/DSP/CamelotMapper.cpp -I Source -o /tmp/camelot_test && /tmp/camelot_test
-
-# Run Lock-Free FIFO, Sliding Window, and Confidence Estimator verification
-clang++ -std=c++17 Tests/DSPTest.cpp \
-    Source/Audio/AudioBufferManager.cpp \
-    Source/Analysis/ConfidenceEstimator.cpp \
-    Source/DSP/CamelotMapper.cpp \
-    -I Source \
-    $(pkg-config --cflags --libs samplerate) \
-    -o /tmp/dsp_test && /tmp/dsp_test
-```
+Проект распространяется под свободной лицензией **GNU Affero General Public License v3.0 (AGPLv3)** в соответствии с лицензией библиотеки Essentia (Music Technology Group, Universitat Pompeu Fabra).
 
 ---
 
-## License
-
-This project is licensed under the **GNU Affero General Public License v3.0 (AGPLv3)** in compliance with the MTG Essentia open-source license.
-For proprietary commercial licensing options without AGPLv3 obligations, contact the Music Technology Group (MTG) at Universitat Pompeu Fabra (https://essentia.upf.edu/).
+<div align="center">
+Сделано с вниманием к звуку, деталям и швейцарской типографике.  
+<b>ClickClack Audio</b>
+</div>

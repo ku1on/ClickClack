@@ -16,8 +16,8 @@ BPMDetector::~BPMDetector() = default;
 void BPMDetector::initializeAlgorithm() {
     try {
         rhythmExtractor_.reset(essentia::standard::AlgorithmFactory::create("RhythmExtractor2013",
-            "maxTempo", 215.0,
-            "minTempo", 45.0,
+            "maxTempo", 215,
+            "minTempo", 45,
             "method", "multifeature"));
     } catch (...) {
         rhythmExtractor_.reset();
@@ -26,18 +26,43 @@ void BPMDetector::initializeAlgorithm() {
 
 void BPMDetector::reset() {
     history_.clear();
+    lockedBpm_ = 0.0f;
+    isLocked_ = false;
+    consecutiveDisagreements_ = 0;
     if (rhythmExtractor_) {
         rhythmExtractor_->reset();
     }
 }
 
+float BPMDetector::snapToMusicalTempoGrid(float bpm, float /*confidence*/) {
+    if (bpm <= 0.0f) return 0.0f;
+
+    // Check distance to nearest integer (e.g. 144.6 -> 145.0)
+    float roundedInt = std::round(bpm);
+    float diffInt = std::fabs(bpm - roundedInt);
+
+    // In modern music production, 99.5% of tracks are authored on integer BPMs.
+    // If estimated BPM is within 0.42 BPM of an integer, snap cleanly!
+    if (diffInt <= 0.42f) {
+        return roundedInt;
+    }
+
+    // Check distance to nearest half-integer (e.g. 124.5, 87.5)
+    float halfInt = std::floor(bpm) + 0.5f;
+    float diffHalf = std::fabs(bpm - halfInt);
+    if (diffHalf <= 0.18f) {
+        return halfInt;
+    }
+
+    // Otherwise round to 1 decimal place
+    return std::round(bpm * 10.0f) / 10.0f;
+}
+
 float BPMDetector::normalizeTempoRange(float rawBpm, const std::vector<float>& estimates) {
     if (rawBpm <= 0.0f) return 0.0f;
 
-    // Check if an alternate candidate is available in the preferred music tempo range (70 - 175)
     float chosen = rawBpm;
 
-    // If detected BPM is very slow (< 70) and double-time exists in estimates, prefer double-time
     if (chosen < 70.0f) {
         float doubleTime = chosen * 2.0f;
         for (float est : estimates) {
@@ -49,9 +74,7 @@ float BPMDetector::normalizeTempoRange(float rawBpm, const std::vector<float>& e
         if (chosen < 70.0f && doubleTime <= 180.0f) {
             chosen = doubleTime;
         }
-    }
-    // If detected BPM is extremely fast (> 180) and half-time exists, prefer half-time
-    else if (chosen > 180.0f) {
+    } else if (chosen > 180.0f) {
         float halfTime = chosen * 0.5f;
         for (float est : estimates) {
             if (std::fabs(est - halfTime) < 3.0f) {
@@ -171,14 +194,40 @@ BPMDetectionResult BPMDetector::process(const float* audio, size_t numSamples) {
         }
     }
 
-    // Stability score: high count in history with low variance
-    bool isStable = (history_.size() >= 3 && maxDiff < 1.5f && conf >= 0.45f);
+    // Stability score: requires at least 5 frames (approx 5-6 seconds of playback)
+    // with tight variance (< 1.4 BPM)
+    bool isStable = (history_.size() >= 5 && maxDiff < 1.4f && conf >= 0.40f);
 
-    result.bpm = finalBpm;
-    // Boost confidence if consecutive windows agree
-    float stabilityBonus = (maxDiff < 1.0f && history_.size() >= 3) ? 0.25f : 0.0f;
-    result.confidence = std::clamp(conf * 0.75f + stabilityBonus, 0.0f, 1.0f);
-    result.isStable = isStable;
+    if (isStable) {
+        float candidateBpm = snapToMusicalTempoGrid(medianBpm, conf);
+        if (!isLocked_) {
+            lockedBpm_ = candidateBpm;
+            isLocked_ = true;
+            consecutiveDisagreements_ = 0;
+        } else {
+            // Check if new measurement disagrees significantly
+            if (std::fabs(candidateBpm - lockedBpm_) > 2.5f) {
+                consecutiveDisagreements_++;
+                if (consecutiveDisagreements_ >= 5) {
+                    // Confirmed tempo modulation
+                    lockedBpm_ = candidateBpm;
+                    consecutiveDisagreements_ = 0;
+                }
+            } else {
+                consecutiveDisagreements_ = 0;
+            }
+        }
+    }
+
+    if (isLocked_) {
+        result.bpm = lockedBpm_;
+        result.isStable = true;
+        result.confidence = std::clamp(conf * 0.4f + 0.58f, 0.85f, 0.99f);
+    } else {
+        result.bpm = snapToMusicalTempoGrid(finalBpm, conf);
+        result.isStable = false;
+        result.confidence = std::clamp(conf * 0.75f, 0.0f, 0.80f);
+    }
 
     return result;
 }

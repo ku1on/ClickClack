@@ -21,7 +21,8 @@ AnalysisState ConfidenceEstimator::update(bool isAudioPresent,
                                           bool bpmStable,
                                           float keyConfidence,
                                           bool keyStable,
-                                          float dtSeconds)
+                                          float dtSeconds,
+                                          float accumulatedAudioSeconds)
 {
     if (!isAudioPresent) {
         silenceTimer_ += dtSeconds;
@@ -36,9 +37,16 @@ AnalysisState ConfidenceEstimator::update(bool isAudioPresent,
     }
 
     // Smooth confidence meters
-    const float alpha = std::clamp(dtSeconds * 3.0f, 0.05f, 0.40f);
+    const float alpha = std::clamp(dtSeconds * 2.5f, 0.04f, 0.35f);
     smoothedBpmConfidence_ += alpha * (bpmConfidence - smoothedBpmConfidence_);
     smoothedKeyConfidence_ += alpha * (keyConfidence - smoothedKeyConfidence_);
+
+    // Enforce 5 to 10 seconds evaluation requirement before locking
+    constexpr float kMinAnalysisSeconds = 5.0f;
+    if (accumulatedAudioSeconds < kMinAnalysisSeconds) {
+        currentState_ = isAudioPresent ? AnalysisState::Analyzing : AnalysisState::Waiting;
+        return currentState_;
+    }
 
     // Determine state
     if (bpmStable && (keyStable || smoothedKeyConfidence_ >= 0.50f)) {

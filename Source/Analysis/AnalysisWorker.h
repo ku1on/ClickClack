@@ -42,9 +42,11 @@ private:
     AnalysisResult currentResult_;
 
     // Analysis configuration
-    static constexpr size_t kBpmWindowSamples = 44100 * 6; // 6 seconds
-    static constexpr size_t kKeyWindowSamples = 44100 * 6; // 6 seconds
+    static constexpr size_t kBpmWindowSamples = 44100 * 8; // 8 seconds for precision
+    static constexpr size_t kKeyWindowSamples = 44100 * 8; // 8 seconds for precision
     static constexpr size_t kHopSamples       = 44100 / 2; // 0.5s hop interval
+
+    float accumulatedAudioSeconds_ = 0.0f;
 
     // Scratch buffers
     std::vector<float> fifoReadScratch_;

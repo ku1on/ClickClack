@@ -7,9 +7,16 @@ namespace clickclack {
 
 class BrutalistButton : public juce::Button {
 public:
-    explicit BrutalistButton(const juce::String& buttonText);
+    enum class Style {
+        Outline,
+        Solid,
+        CopyIcon
+    };
+
+    explicit BrutalistButton(const juce::String& buttonText, Style style = Style::Outline);
     ~BrutalistButton() override = default;
 
+    void setStyle(Style s);
     void paintButton(juce::Graphics& g, bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override;
     
     // Shows temporary feedback e.g. "COPIED"
@@ -18,6 +25,7 @@ public:
 private:
     juce::String originalText_;
     juce::String feedbackText_;
+    Style style_ = Style::Outline;
     bool showingFeedback_ = false;
 
     void resetFeedback();

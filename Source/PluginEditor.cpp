@@ -10,7 +10,8 @@ ClickClackAudioProcessorEditor::ClickClackAudioProcessorEditor(ClickClackAudioPr
     : juce::AudioProcessorEditor(&p)
     , processorRef_(p)
 {
-    setSize(440, 480);
+    // Aspect ratio matching reference design: 740 x 480
+    setSize(740, 480);
 
     addAndMakeVisible(statusBadge_);
     addAndMakeVisible(signalMeter_);
@@ -22,31 +23,43 @@ ClickClackAudioProcessorEditor::ClickClackAudioProcessorEditor(ClickClackAudioPr
     addAndMakeVisible(copyKeyButton_);
     addAndMakeVisible(copyAllButton_);
 
+    addAndMakeVisible(copyBpmIconBtn_);
+    addAndMakeVisible(copyKeyIconBtn_);
+
+    // Button actions
     resetButton_.onClick = [this] {
         processorRef_.getAnalysisEngine().reset();
-        resetButton_.triggerFeedback("RESET DONE", 800);
+        resetButton_.triggerFeedback("RESET DONE", 900);
     };
 
-    copyBpmButton_.onClick = [this] {
+    auto handleCopyBpm = [this] {
         if (lastResult_.bpm > 0.0f) {
             std::ostringstream oss;
             oss << std::fixed << std::setprecision(1) << lastResult_.effectiveBpm();
             copyToClipboard(oss.str());
             copyBpmButton_.triggerFeedback("COPIED");
+            copyBpmIconBtn_.triggerFeedback("OK");
         } else {
             copyBpmButton_.triggerFeedback("NO BPM");
         }
     };
 
-    copyKeyButton_.onClick = [this] {
+    auto handleCopyKey = [this] {
         std::string keyStr = lastResult_.effectiveKeyDisplay();
         if (keyStr != "---") {
             copyToClipboard(keyStr);
             copyKeyButton_.triggerFeedback("COPIED");
+            copyKeyIconBtn_.triggerFeedback("OK");
         } else {
             copyKeyButton_.triggerFeedback("NO KEY");
         }
     };
+
+    copyBpmButton_.onClick = handleCopyBpm;
+    copyBpmIconBtn_.onClick = handleCopyBpm;
+
+    copyKeyButton_.onClick = handleCopyKey;
+    copyKeyIconBtn_.onClick = handleCopyKey;
 
     copyAllButton_.onClick = [this] {
         if (lastResult_.bpm > 0.0f) {
@@ -77,6 +90,7 @@ void ClickClackAudioProcessorEditor::timerCallback() {
     lastResult_ = processorRef_.getAnalysisEngine().getSnapshot();
 
     statusBadge_.setState(lastResult_.state);
+    statusBadge_.setProgress(lastResult_.analysisProgress);
     signalMeter_.setLevel(lastResult_.inputLevelRms, lastResult_.isAudioPresent);
     bpmConfidenceBar_.setConfidence(lastResult_.bpmConfidence);
     keyConfidenceBar_.setConfidence(lastResult_.keyConfidence);
@@ -85,151 +99,209 @@ void ClickClackAudioProcessorEditor::timerCallback() {
 }
 
 void ClickClackAudioProcessorEditor::paint(juce::Graphics& g) {
-    // Solid background
+    // Pure black background
     g.fillAll(theme::kBackground);
 
-    auto bounds = getLocalBounds().toFloat();
+    auto totalBounds = getLocalBounds().toFloat();
+    float margin = 14.0f;
+    auto content = totalBounds.reduced(margin);
 
-    // Outer border
+    // Outer frame border
     g.setColour(theme::kBorder);
-    g.drawRect(bounds, 1.0f);
+    g.drawRect(content, 1.2f);
 
-    // Padding
-    float pad = 24.0f;
-    auto content = bounds.reduced(pad);
+    // ========================================================
+    // 1. HEADER SECTION
+    // ========================================================
+    float headerHeight = 52.0f;
+    auto headerRect = content.removeFromTop(headerHeight);
 
-    // 1. Header Row
-    auto headerRow = content.removeFromTop(32.0f);
-    g.setFont(theme::getDisplayFont(20.0f, true));
+    // Draw 4 diagonal slashes logo "///"
+    float slashX = headerRect.getX() + 16.0f;
+    float slashY = headerRect.getY() + 14.0f;
+    float slashH = 24.0f;
+    float slashW = 5.0f;
+    float slashSlant = 8.0f;
+    float slashGap = 4.0f;
+
     g.setColour(theme::kTextWhite);
-    g.drawText("CLICKCLACK", headerRow, juce::Justification::centredLeft, false);
-
-    content.removeFromTop(20.0f);
-
-    // Divider line
-    g.setColour(theme::kBorder);
-    g.drawHorizontalLine(static_cast<int>(headerRow.getBottom() + 10.0f), pad, bounds.getRight() - pad);
-
-    // 2. BPM Block
-    auto bpmBlock = content.removeFromTop(120.0f);
-    g.setColour(theme::kSurface);
-    g.fillRect(bpmBlock);
-    g.setColour(theme::kBorder);
-    g.drawRect(bpmBlock, 1.0f);
-
-    auto bpmInner = bpmBlock.reduced(14.0f);
-    auto bpmLabelRow = bpmInner.removeFromTop(14.0f);
-    g.setFont(theme::getMonospaceFont(11.0f, true));
-    g.setColour(theme::kTextDim);
-    g.drawText("BPM", bpmLabelRow, juce::Justification::centredLeft, false);
-
-    if (lastResult_.hasManualBpm) {
-        g.setColour(theme::kTextDim);
-        g.drawText("[MANUAL]", bpmLabelRow, juce::Justification::centredRight, false);
+    for (int i = 0; i < 4; ++i) {
+        float xOffset = i * (slashW + slashGap);
+        juce::Path p;
+        p.startNewSubPath(slashX + xOffset + slashSlant, slashY);
+        p.lineTo(slashX + xOffset + slashSlant + slashW, slashY);
+        p.lineTo(slashX + xOffset + slashW, slashY + slashH);
+        p.lineTo(slashX + xOffset, slashY + slashH);
+        p.closeSubPath();
+        g.fillPath(p);
     }
 
-    auto bpmValueRow = bpmInner.removeFromTop(58.0f);
-    g.setFont(theme::getDisplayFont(46.0f, true));
+    // Title text "CLICKCLACK"
+    float titleX = slashX + 4 * (slashW + slashGap) + 12.0f;
+    g.setFont(theme::getDisplayFont(26.0f, true));
     g.setColour(theme::kTextWhite);
+    g.drawText("CLICKCLACK", titleX, headerRect.getY() + 8.0f, 240.0f, 36.0f, juce::Justification::centredLeft, false);
 
+    // Header Right: "[ REAL-TIME ANALYSIS ]"
+    g.setFont(theme::getMonospaceFont(12.0f, false));
+    g.setColour(theme::kTextWhite);
+    g.drawText("[ REAL-TIME ANALYSIS ]", headerRect.getRight() - 210.0f, headerRect.getY() + 14.0f, 195.0f, 24.0f, juce::Justification::centredRight, false);
+
+    // Horizontal divider below header
+    g.setColour(theme::kBorder);
+    g.drawHorizontalLine(static_cast<int>(headerRect.getBottom()), content.getX(), content.getRight());
+
+    // ========================================================
+    // 2. MAIN GRID & SECTIONS
+    // ========================================================
+    float bottomRowHeight = 56.0f;
+    auto mainGrid = content.removeFromTop(content.getHeight() - bottomRowHeight);
+
+    float leftColWidth = 185.0f;
+    auto leftCol = mainGrid.removeFromLeft(leftColWidth);
+
+    // Vertical divider line separating left column from right area
+    g.setColour(theme::kBorder);
+    g.drawVerticalLine(static_cast<int>(leftCol.getRight()), mainGrid.getY(), mainGrid.getBottom());
+
+    // Paint Left Column Headings
+    g.setFont(theme::getMonospaceFont(11.0f, true));
+    g.setColour(theme::kTextDim);
+
+    float leftPad = leftCol.getX() + 16.0f;
+    g.drawText("STATUS", leftPad, leftCol.getY() + 14.0f, 150.0f, 16.0f, juce::Justification::centredLeft, false);
+    g.drawText("CONFIDENCE", leftPad, leftCol.getY() + 86.0f, 150.0f, 16.0f, juce::Justification::centredLeft, false);
+    g.drawText("INPUT", leftPad, leftCol.getY() + 204.0f, 150.0f, 16.0f, juce::Justification::centredLeft, false);
+
+    // Right Area: Split into Top (BPM) and Bottom (KEY / CAMELOT)
+    float bpmRowHeight = 200.0f;
+    auto bpmArea = mainGrid.removeFromTop(bpmRowHeight);
+    auto keyCamelotArea = mainGrid;
+
+    // Horizontal divider between BPM and KEY/CAMELOT
+    g.setColour(theme::kBorder);
+    g.drawHorizontalLine(static_cast<int>(bpmArea.getBottom()), mainGrid.getX(), mainGrid.getRight());
+
+    // --- Paint BPM Area ---
+    float rightPad = bpmArea.getX() + 24.0f;
+    g.setFont(theme::getDisplayFont(12.5f, true));
+    g.setColour(theme::kTextWhite);
+    g.drawText("BPM", rightPad, bpmArea.getY() + 14.0f, 120.0f, 18.0f, juce::Justification::centredLeft, false);
+
+    if (lastResult_.hasManualBpm) {
+        g.setFont(theme::getMonospaceFont(10.5f, true));
+        g.setColour(theme::kTextDim);
+        g.drawText("[MANUAL]", rightPad + 40.0f, bpmArea.getY() + 14.0f, 80.0f, 18.0f, juce::Justification::centredLeft, false);
+    }
+
+    // Hero BPM Value
     juce::String bpmStr = "---.-";
     if (lastResult_.effectiveBpm() > 0.0f) {
         std::ostringstream oss;
         oss << std::fixed << std::setprecision(1) << lastResult_.effectiveBpm();
         bpmStr = oss.str();
     }
-    g.drawText(bpmStr, bpmValueRow, juce::Justification::centredLeft, false);
 
-    content.removeFromTop(16.0f);
-
-    // 3. KEY & CAMELOT Block
-    auto keyCamelotBlock = content.removeFromTop(128.0f);
-    
-    // Left: KEY (62% width), Right: CAMELOT (38% width)
-    float gap = 12.0f;
-    float keyWidth = (keyCamelotBlock.getWidth() - gap) * 0.62f;
-    float camelotWidth = keyCamelotBlock.getWidth() - gap - keyWidth;
-
-    auto keyBox = keyCamelotBlock.removeFromLeft(keyWidth);
-    keyCamelotBlock.removeFromLeft(gap);
-    auto camelotBox = keyCamelotBlock;
-
-    // KEY Box Paint
-    g.setColour(theme::kSurface);
-    g.fillRect(keyBox);
-    g.setColour(theme::kBorder);
-    g.drawRect(keyBox, 1.0f);
-
-    auto keyInner = keyBox.reduced(14.0f);
-    auto keyLabelRow = keyInner.removeFromTop(14.0f);
-    g.setFont(theme::getMonospaceFont(11.0f, true));
-    g.setColour(theme::kTextDim);
-    g.drawText("KEY", keyLabelRow, juce::Justification::centredLeft, false);
-
-    auto keyValueRow = keyInner.removeFromTop(54.0f);
-    g.setFont(theme::getDisplayFont(24.0f, true));
+    g.setFont(theme::getDisplayFont(108.0f, true));
     g.setColour(theme::kTextWhite);
-    
+    g.drawText(bpmStr, rightPad - 4.0f, bpmArea.getY() + 32.0f, bpmArea.getWidth() - 80.0f, 155.0f, juce::Justification::centredLeft, false);
+
+    // --- Paint Bottom Area (KEY & CAMELOT) ---
+    float keyWidth = (keyCamelotArea.getWidth()) * 0.65f;
+    auto keyArea = keyCamelotArea.removeFromLeft(keyWidth);
+    auto camelotArea = keyCamelotArea;
+
+    // Vertical divider between KEY and CAMELOT
+    g.setColour(theme::kBorder);
+    g.drawVerticalLine(static_cast<int>(keyArea.getRight()), keyArea.getY(), keyArea.getBottom());
+
+    // Paint KEY Cell
+    float keyPadX = keyArea.getX() + 24.0f;
+    g.setFont(theme::getDisplayFont(12.5f, true));
+    g.setColour(theme::kTextWhite);
+    g.drawText("KEY", keyPadX, keyArea.getY() + 12.0f, 120.0f, 18.0f, juce::Justification::centredLeft, false);
+
     juce::String keyStr = "---";
     if (!lastResult_.rootNote.empty()) {
         keyStr = juce::String(lastResult_.effectiveKeyDisplay()).toUpperCase();
     }
-    g.drawText(keyStr, keyValueRow, juce::Justification::centredLeft, false);
 
-    // CAMELOT Box Paint
-    g.setColour(theme::kSurface);
-    g.fillRect(camelotBox);
-    g.setColour(theme::kBorder);
-    g.drawRect(camelotBox, 1.0f);
-
-    auto camelotInner = camelotBox.reduced(14.0f);
-    auto camelotLabelRow = camelotInner.removeFromTop(14.0f);
-    g.setFont(theme::getMonospaceFont(11.0f, true));
-    g.setColour(theme::kTextDim);
-    g.drawText("CAMELOT", camelotLabelRow, juce::Justification::centredLeft, false);
-
-    auto camelotValBounds = camelotInner.removeFromTop(54.0f);
-    g.setFont(theme::getDisplayFont(32.0f, true));
+    g.setFont(theme::getDisplayFont(46.0f, true));
     g.setColour(theme::kTextWhite);
+    g.drawText(keyStr, keyPadX, keyArea.getY() + 36.0f, keyArea.getWidth() - 80.0f, 64.0f, juce::Justification::centredLeft, false);
+
+    // Paint CAMELOT Cell
+    float camelotPadX = camelotArea.getX() + 24.0f;
+    g.setFont(theme::getDisplayFont(12.5f, true));
+    g.setColour(theme::kTextWhite);
+    g.drawText("CAMELOT", camelotPadX, camelotArea.getY() + 12.0f, 120.0f, 18.0f, juce::Justification::centredLeft, false);
+
     juce::String camelotStr = lastResult_.effectiveCamelot();
-    g.drawText(camelotStr, camelotValBounds, juce::Justification::centred, false);
+    g.setFont(theme::getDisplayFont(68.0f, true));
+    g.setColour(theme::kTextWhite);
+    g.drawText(camelotStr, camelotArea.getX(), camelotArea.getY() + 24.0f, camelotArea.getWidth() - 16.0f, 80.0f, juce::Justification::centred, false);
+
+    // ========================================================
+    // 3. BOTTOM DIVIDER & BUTTONS
+    // ========================================================
+    g.setColour(theme::kBorder);
+    g.drawHorizontalLine(static_cast<int>(content.getY()), content.getX(), content.getRight());
 }
 
 void ClickClackAudioProcessorEditor::resized() {
-    auto bounds = getLocalBounds();
-    int pad = 24;
+    auto totalBounds = getLocalBounds();
+    int margin = 14;
+    auto content = totalBounds.reduced(margin);
 
-    // Header Right: Signal Meter + Status Badge
-    int headerY = 24;
-    int badgeWidth = 92;
-    int badgeHeight = 26;
-    int signalWidth = 48;
+    int headerHeight = 52;
+    content.removeFromTop(headerHeight);
 
-    statusBadge_.setBounds(bounds.getRight() - pad - badgeWidth, headerY, badgeWidth, badgeHeight);
-    signalMeter_.setBounds(statusBadge_.getX() - signalWidth - 10, headerY + 4, signalWidth, 18);
+    int bottomRowHeight = 56;
+    auto mainGrid = content.removeFromTop(content.getHeight() - bottomRowHeight);
+    auto bottomArea = content;
 
-    // Confidence bars placed inside their respective blocks
-    // BPM Block starts at y = 76, height = 120
-    int bpmBlockY = 76;
-    bpmConfidenceBar_.setBounds(pad + 14, bpmBlockY + 84, bounds.getWidth() - (pad * 2) - 28, 22);
+    int leftColWidth = 185;
+    auto leftCol = mainGrid.removeFromLeft(leftColWidth);
 
-    // Key Block starts at y = 212, height = 128
-    int keyBlockY = 212;
-    int keyWidth = static_cast<int>((bounds.getWidth() - (pad * 2) - 12) * 0.62f);
-    keyConfidenceBar_.setBounds(pad + 14, keyBlockY + 92, keyWidth - 28, 22);
+    // Layout Left Column Components
+    int leftPad = leftCol.getX() + 16;
+    int colInnerWidth = leftColWidth - 32;
 
-    // Action Buttons Row at bottom
-    int buttonRowY = bounds.getHeight() - pad - 36;
-    int totalBtnWidth = bounds.getWidth() - (pad * 2);
-    int btnGap = 8;
-    int numButtons = 4;
-    int btnWidth = (totalBtnWidth - (btnGap * (numButtons - 1))) / numButtons;
-    int btnHeight = 36;
+    statusBadge_.setBounds(leftPad, leftCol.getY() + 36, colInnerWidth, 32);
 
-    resetButton_.setBounds(pad, buttonRowY, btnWidth, btnHeight);
-    copyBpmButton_.setBounds(resetButton_.getRight() + btnGap, buttonRowY, btnWidth, btnHeight);
-    copyKeyButton_.setBounds(copyBpmButton_.getRight() + btnGap, buttonRowY, btnWidth, btnHeight);
-    copyAllButton_.setBounds(copyKeyButton_.getRight() + btnGap, buttonRowY, btnWidth, btnHeight);
+    bpmConfidenceBar_.setBounds(leftPad, leftCol.getY() + 110, colInnerWidth, 34);
+    keyConfidenceBar_.setBounds(leftPad, leftCol.getY() + 152, colInnerWidth, 34);
+
+    signalMeter_.setBounds(leftPad, leftCol.getY() + 228, colInnerWidth, 28);
+
+    // Right Area (BPM & Key/Camelot)
+    int bpmRowHeight = 200;
+    auto bpmArea = mainGrid.removeFromTop(bpmRowHeight);
+    auto keyCamelotArea = mainGrid;
+
+    // BPM Copy Icon Button (far right)
+    copyBpmIconBtn_.setBounds(bpmArea.getRight() - 24 - 36, bpmArea.getY() + 70, 36, 36);
+
+    // Key Copy Icon Button
+    int keyWidth = static_cast<int>(keyCamelotArea.getWidth() * 0.65f);
+    auto keyArea = keyCamelotArea.removeFromLeft(keyWidth);
+
+    copyKeyIconBtn_.setBounds(keyArea.getRight() - 20 - 32, keyArea.getY() + 52, 32, 32);
+
+    // Bottom Action Buttons (RESET, COPY BPM, COPY KEY, COPY ALL)
+    int btnMarginY = bottomArea.getY() + 9;
+    int btnHeight = 38;
+    int btnGap = 10;
+    int totalBtnsWidth = bottomArea.getWidth() - 28; // 14px padding each side
+
+    // 4 buttons with copy all slightly wider or equal
+    int btnWidth = (totalBtnsWidth - (btnGap * 3)) / 4;
+    int startX = bottomArea.getX() + 14;
+
+    resetButton_.setBounds(startX, btnMarginY, btnWidth, btnHeight);
+    copyBpmButton_.setBounds(resetButton_.getRight() + btnGap, btnMarginY, btnWidth, btnHeight);
+    copyKeyButton_.setBounds(copyBpmButton_.getRight() + btnGap, btnMarginY, btnWidth, btnHeight);
+    copyAllButton_.setBounds(copyKeyButton_.getRight() + btnGap, btnMarginY, btnWidth, btnHeight);
 }
 
 } // namespace clickclack

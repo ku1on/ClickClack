@@ -38,6 +38,11 @@ public:
      */
     static float normalizeTempoRange(float rawBpm, const std::vector<float>& estimates);
 
+    /**
+     * Snaps estimated BPM to integer or half-integer grid if within margin.
+     */
+    static float snapToMusicalTempoGrid(float bpm, float confidence);
+
 private:
     std::unique_ptr<essentia::standard::Algorithm> rhythmExtractor_;
 
@@ -47,8 +52,12 @@ private:
         float confidence;
     };
     std::deque<HistoryItem> history_;
-    static constexpr size_t kMaxHistory = 8;
-    static constexpr float kMinConfidenceThreshold = 0.25f;
+    static constexpr size_t kMaxHistory = 12;
+    static constexpr float kMinConfidenceThreshold = 0.30f;
+
+    float lockedBpm_ = 0.0f;
+    bool isLocked_ = false;
+    size_t consecutiveDisagreements_ = 0;
 
     void initializeAlgorithm();
 };

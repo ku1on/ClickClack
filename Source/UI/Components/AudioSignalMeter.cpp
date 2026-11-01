@@ -16,23 +16,39 @@ void AudioSignalMeter::setLevel(float rmsLevel, bool isPresent) {
 void AudioSignalMeter::paint(juce::Graphics& g) {
     auto bounds = getLocalBounds().toFloat();
 
-    // Signal text
-    auto textBounds = bounds.removeFromLeft(22.0f);
-    g.setFont(theme::getMonospaceFont(10.0f, false));
-    g.setColour(isPresent_ ? theme::kTextWhite : theme::kTextMuted);
-    g.drawText("SIG", textBounds, juce::Justification::centredLeft, false);
+    const int numBars = 12;
+    const float barWidth = 4.0f;
+    const float gap = 3.0f;
+    const float maxBarHeight = bounds.getHeight() - 2.0f;
+    const float minBarHeight = 4.0f;
 
-    // Mini LED box
-    float dotSize = 8.0f;
-    float dotY = (bounds.getHeight() - dotSize) * 0.5f;
-    juce::Rectangle<float> dotBounds(bounds.getX() + 2.0f, dotY, dotSize, dotSize);
+    // Calculate how many bars to light up based on RMS level
+    int litCount = 0;
+    if (isPresent_) {
+        // Logarithmic/perceptual curve for audio level
+        float scaled = std::clamp(std::sqrt(level_ * 3.5f), 0.08f, 1.0f);
+        litCount = std::clamp(static_cast<int>(std::round(scaled * numBars)), 1, numBars);
+    }
 
-    juce::Colour dotCol = isPresent_ ? theme::kTextWhite : theme::kSignalInactive;
-    g.setColour(dotCol);
-    g.fillRect(dotBounds);
+    float startX = 0.0f;
+    float bottomY = bounds.getBottom();
 
-    g.setColour(isPresent_ ? theme::kBorderBright : theme::kBorder);
-    g.drawRect(dotBounds, 1.0f);
+    for (int i = 0; i < numBars; ++i) {
+        float frac = static_cast<float>(i) / static_cast<float>(numBars - 1);
+        float h = minBarHeight + frac * (maxBarHeight - minBarHeight);
+        float x = startX + i * (barWidth + gap);
+        float y = bottomY - h;
+
+        juce::Rectangle<float> barRect(x, y, barWidth, h);
+
+        if (i < litCount) {
+            g.setColour(theme::kTextWhite);
+        } else {
+            g.setColour(theme::kSignalInactive);
+        }
+
+        g.fillRect(barRect);
+    }
 }
 
 } // namespace clickclack

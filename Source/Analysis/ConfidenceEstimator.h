@@ -20,7 +20,8 @@ public:
                          bool bpmStable,
                          float keyConfidence,
                          bool keyStable,
-                         float dtSeconds);
+                         float dtSeconds,
+                         float accumulatedAudioSeconds);
 
     float getSmoothedBpmConfidence() const noexcept { return smoothedBpmConfidence_; }
     float getSmoothedKeyConfidence() const noexcept { return smoothedKeyConfidence_; }

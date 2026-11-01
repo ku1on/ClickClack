@@ -25,13 +25,16 @@ private:
     // UI Components
     StatusBadge statusBadge_;
     AudioSignalMeter signalMeter_;
-    ConfidenceBar bpmConfidenceBar_{"BPM CONFIDENCE"};
-    ConfidenceBar keyConfidenceBar_{"KEY CONFIDENCE"};
+    ConfidenceBar bpmConfidenceBar_{"BPM"};
+    ConfidenceBar keyConfidenceBar_{"KEY"};
 
-    BrutalistButton resetButton_{"RESET"};
-    BrutalistButton copyBpmButton_{"COPY BPM"};
-    BrutalistButton copyKeyButton_{"COPY KEY"};
-    BrutalistButton copyAllButton_{"COPY ALL"};
+    BrutalistButton resetButton_{"RESET", BrutalistButton::Style::Outline};
+    BrutalistButton copyBpmButton_{"COPY BPM", BrutalistButton::Style::Outline};
+    BrutalistButton copyKeyButton_{"COPY KEY", BrutalistButton::Style::Outline};
+    BrutalistButton copyAllButton_{"COPY ALL", BrutalistButton::Style::Solid};
+
+    BrutalistButton copyBpmIconBtn_{"", BrutalistButton::Style::CopyIcon};
+    BrutalistButton copyKeyIconBtn_{"", BrutalistButton::Style::CopyIcon};
 
     // Cached values for display
     AnalysisResult lastResult_;

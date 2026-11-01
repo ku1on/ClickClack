@@ -11,26 +11,40 @@ void StatusBadge::setState(AnalysisState state) {
     }
 }
 
+void StatusBadge::setProgress(float progress) {
+    if (std::fabs(progress_ - progress) > 0.02f) {
+        progress_ = progress;
+        if (state_ == AnalysisState::Analyzing) {
+            repaint();
+        }
+    }
+}
+
 void StatusBadge::paint(juce::Graphics& g) {
     auto bounds = getLocalBounds().toFloat();
 
-    juce::Colour bg = theme::kSurface;
+    juce::Colour bg = theme::kBackground;
     juce::Colour border = theme::kBorder;
     juce::Colour textCol = theme::kTextDim;
-    const char* str = "WAITING";
+    juce::String str = "WAITING";
 
     switch (state_) {
         case AnalysisState::Waiting:
-            bg = theme::kSurface;
+            bg = theme::kBackground;
             border = theme::kBorder;
             textCol = theme::kTextMuted;
             str = "WAITING";
             break;
         case AnalysisState::Analyzing:
-            bg = theme::kSurfaceActive;
-            border = theme::kBorderLight;
+            bg = theme::kBackground;
+            border = theme::kTextWhite;
             textCol = theme::kTextWhite;
-            str = "ANALYZING";
+            if (progress_ > 0.05f) {
+                int pct = static_cast<int>(std::round(progress_ * 100.0f));
+                str = "ANALYZING " + juce::String(pct) + "%";
+            } else {
+                str = "ANALYZING";
+            }
             break;
         case AnalysisState::Locked:
             bg = theme::kTextWhite;
@@ -44,10 +58,10 @@ void StatusBadge::paint(juce::Graphics& g) {
     g.fillRect(bounds);
 
     g.setColour(border);
-    g.drawRect(bounds, 1.0f);
+    g.drawRect(bounds, 1.2f);
 
     g.setColour(textCol);
-    g.setFont(theme::getMonospaceFont(10.5f, true));
+    g.setFont(theme::getDisplayFont(12.0f, true));
     g.drawText(str, getLocalBounds(), juce::Justification::centred, false);
 }
 

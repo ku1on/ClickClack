@@ -44,8 +44,14 @@ private:
         float confidence;
     };
     std::deque<KeyHistoryItem> history_;
-    static constexpr size_t kMaxHistory = 10;
-    static constexpr float kMinStrengthThreshold = 0.22f;
+    static constexpr size_t kMaxHistory = 14;
+    static constexpr float kMinStrengthThreshold = 0.25f;
+
+    std::string lockedRoot_ = "";
+    std::string lockedScale_ = "";
+    std::string lockedCamelot_ = "";
+    bool isLocked_ = false;
+    size_t consecutiveDisagreements_ = 0;
 
     void initializeAlgorithm();
 };

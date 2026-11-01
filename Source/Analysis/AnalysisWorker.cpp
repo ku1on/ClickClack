@@ -57,6 +57,7 @@ void AnalysisWorker::run() {
             bpmDetector_.reset();
             keyDetector_.reset();
             confidenceEstimator_.reset();
+            accumulatedAudioSeconds_ = 0.0f;
 
             std::lock_guard<std::mutex> lock(resultMutex_);
             bool mbEnabled = currentResult_.hasManualBpm;
@@ -118,6 +119,12 @@ void AnalysisWorker::performAnalysisStep() {
     float rms = std::sqrt(sumSq / static_cast<float>(kBpmWindowSamples / 64));
     bool isAudioPresent = (rms > 0.001f);
 
+    if (isAudioPresent) {
+        accumulatedAudioSeconds_ += 0.5f;
+    } else {
+        accumulatedAudioSeconds_ = std::max(0.0f, accumulatedAudioSeconds_ - 0.5f);
+    }
+
     BPMDetectionResult bpmRes;
     KeyDetectionResult keyRes;
 
@@ -132,33 +139,50 @@ void AnalysisWorker::performAnalysisStep() {
         bpmRes.isStable,
         keyRes.confidence,
         keyRes.isStable,
-        0.5f // Hop duration
+        0.5f, // Hop duration
+        accumulatedAudioSeconds_
     );
 
     // Update shared result
     std::lock_guard<std::mutex> lock(resultMutex_);
     currentResult_.state = newState;
     currentResult_.isAudioPresent = isAudioPresent;
+    currentResult_.accumulatedSeconds = accumulatedAudioSeconds_;
+    currentResult_.analysisProgress = std::clamp(accumulatedAudioSeconds_ / 5.5f, 0.0f, 1.0f);
 
     if (isAudioPresent) {
-        if (bpmRes.bpm > 0.0f) {
-            currentResult_.bpm = bpmRes.bpm;
-            currentResult_.bpmConfidence = confidenceEstimator_.getSmoothedBpmConfidence();
-            currentResult_.bpmLocked = bpmRes.isStable;
-        }
+        currentResult_.bpmConfidence = confidenceEstimator_.getSmoothedBpmConfidence();
+        currentResult_.keyConfidence = confidenceEstimator_.getSmoothedKeyConfidence();
+        currentResult_.bpmLocked = bpmRes.isStable;
+        currentResult_.keyLocked = keyRes.isStable;
 
-        if (!keyRes.rootNote.empty()) {
-            currentResult_.rootNote = keyRes.rootNote;
-            currentResult_.scale = keyRes.scale;
-            currentResult_.camelot = keyRes.camelot;
-            currentResult_.keyConfidence = confidenceEstimator_.getSmoothedKeyConfidence();
-            currentResult_.keyLocked = keyRes.isStable;
+        // When locked, publish the stable results
+        if (newState == AnalysisState::Locked) {
+            if (bpmRes.bpm > 0.0f) {
+                currentResult_.bpm = bpmRes.bpm;
+            }
+            if (!keyRes.rootNote.empty()) {
+                currentResult_.rootNote = keyRes.rootNote;
+                currentResult_.scale = keyRes.scale;
+                currentResult_.camelot = keyRes.camelot;
+            }
+        } else if (newState == AnalysisState::Analyzing) {
+            // During initial warm-up accumulation (first 5-8 seconds),
+            // do not emit fluctuating raw preliminary numbers if not locked yet
+            if (!currentResult_.bpmLocked) {
+                currentResult_.bpm = 0.0f;
+                currentResult_.rootNote = "";
+                currentResult_.scale = "";
+                currentResult_.camelot = "--";
+            }
         }
     } else if (newState == AnalysisState::Waiting) {
         currentResult_.bpmConfidence = 0.0f;
         currentResult_.keyConfidence = 0.0f;
         currentResult_.bpmLocked = false;
         currentResult_.keyLocked = false;
+        currentResult_.accumulatedSeconds = 0.0f;
+        currentResult_.analysisProgress = 0.0f;
     }
 }
 

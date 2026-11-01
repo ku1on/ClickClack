@@ -28,6 +28,11 @@ void KeyDetector::initializeAlgorithm() {
 
 void KeyDetector::reset() {
     history_.clear();
+    lockedRoot_ = "";
+    lockedScale_ = "";
+    lockedCamelot_ = "";
+    isLocked_ = false;
+    consecutiveDisagreements_ = 0;
     if (keyExtractor_) {
         keyExtractor_->reset();
     }
@@ -109,13 +114,47 @@ KeyDetectionResult KeyDetector::process(const float* audio, size_t numSamples) {
     std::string finalScale = (spacePos != std::string::npos) ? bestKeyCombo.substr(spacePos + 1) : normScale;
 
     float consensusRatio = (totalWeight > 0.0001f) ? (bestScore / totalWeight) : 0.0f;
-    bool isStable = (history_.size() >= 3 && consensusRatio >= 0.65f && strength >= 0.40f);
+    // Require at least 6 frames (approx 5-6s) with strong consensus (>= 68%) to lock
+    bool isStable = (history_.size() >= 6 && consensusRatio >= 0.68f && strength >= 0.35f);
 
-    result.rootNote = finalRoot;
-    result.scale = finalScale;
-    result.camelot = CamelotMapper::toCamelot(finalRoot, finalScale);
-    result.confidence = std::clamp(strength * 0.7f + consensusRatio * 0.3f, 0.0f, 1.0f);
-    result.isStable = isStable;
+    if (isStable) {
+        std::string candidateCamelot = CamelotMapper::toCamelot(finalRoot, finalScale);
+        if (!isLocked_) {
+            lockedRoot_ = finalRoot;
+            lockedScale_ = finalScale;
+            lockedCamelot_ = candidateCamelot;
+            isLocked_ = true;
+            consecutiveDisagreements_ = 0;
+        } else {
+            // If already locked, check if the candidate differs
+            if (candidateCamelot != lockedCamelot_) {
+                consecutiveDisagreements_++;
+                if (consecutiveDisagreements_ >= 6) {
+                    // Confirmed key change after 6 consecutive frames of disagreement
+                    lockedRoot_ = finalRoot;
+                    lockedScale_ = finalScale;
+                    lockedCamelot_ = candidateCamelot;
+                    consecutiveDisagreements_ = 0;
+                }
+            } else {
+                consecutiveDisagreements_ = 0;
+            }
+        }
+    }
+
+    if (isLocked_) {
+        result.rootNote = lockedRoot_;
+        result.scale = lockedScale_;
+        result.camelot = lockedCamelot_;
+        result.confidence = std::clamp(strength * 0.4f + consensusRatio * 0.58f, 0.85f, 0.99f);
+        result.isStable = true;
+    } else {
+        result.rootNote = finalRoot;
+        result.scale = finalScale;
+        result.camelot = CamelotMapper::toCamelot(finalRoot, finalScale);
+        result.confidence = std::clamp(strength * 0.6f + consensusRatio * 0.25f, 0.0f, 0.80f);
+        result.isStable = false;
+    }
 
     return result;
 }

@@ -39,6 +39,8 @@ struct AnalysisResult {
     float inputLevelRms = 0.0f;       // 0.0 to 1.0
     float inputLevelPeak = 0.0f;      // 0.0 to 1.0
     bool isAudioPresent = false;
+    float accumulatedSeconds = 0.0f;
+    float analysisProgress = 0.0f;    // 0.0 to 1.0 during warm-up
 
     // Manual overrides
     float manualBpm = 0.0f;

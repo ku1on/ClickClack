@@ -12,10 +12,12 @@ public:
     ~StatusBadge() override = default;
 
     void setState(AnalysisState state);
+    void setProgress(float progress);
     void paint(juce::Graphics& g) override;
 
 private:
     AnalysisState state_ = AnalysisState::Waiting;
+    float progress_ = 0.0f;
 };
 
 } // namespace clickclack
