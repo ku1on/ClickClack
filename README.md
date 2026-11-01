@@ -29,11 +29,9 @@
 
 ClickClack распространяется по модели **Pay What You Want («Плати сколько хочешь»)** — вы можете скачать и пользоваться плагином **абсолютно бесплатно**, а если он экономит вам время в студии и помогает в творчестве — закинуть автору любую комфортную сумму на кофе или дальнейшую разработку версии под Windows:
 
-* 💳 **Чаевые картами РФ / СБП (CloudTips / Т-Банк):** [Оставить чаевые](https://pay.tbank.ru/) *(или CloudTips)*
-* 🚀 **Boosty (Донат / Подписка):** [boosty.to/clickclack](https://boosty.to/)
-* 🌍 **Gumroad (Зарубежные карты / Apple Pay / PayPal):** [gumroad.com](https://gumroad.com/)
-* 💎 **USDT (TRC20):** `Укажите свой кошелек в настройках релиза`
-* ⚡ **TON:** `Укажите свой TON адрес`
+* 💎 **USDT (TRC20):** `TEGdsDjDpkQeoVk26mjybnHtPuMQ5Ydvqk`
+* ⚡ **USDT (TON):** `UQCJMhsCg-4cDmYFFvl81SukALmpGcrQhT8jLrTevOX3Xtea`
+* 💳 **Карты РФ / СБП (Т-Банк / CloudTips):** Ссылка на чаевые будет добавлена ниже *(или перевод по QR/ссылке Т-Банка)*
 
 ---
 
